@@ -1573,7 +1573,8 @@ static void handle_msr_i(DisasContext *s, uint32_t insn,
         break;
     }
     default:
-        unallocated_encoding(s);
+        fprintf(stderr, "Ignoring msr op: %x\n", op);
+        // unallocated_encoding(s);
         return;
     }
 }
