@@ -79,6 +79,8 @@
 #include "hw/char/pl011.h"
 #include "qemu/guest-random.h"
 
+#include "hw/arm/exynos4210.h"
+
 #define DEFINE_VIRT_MACHINE_LATEST(major, minor, latest) \
     static void virt_##major##_##minor##_class_init(ObjectClass *oc, \
                                                     void *data) \
@@ -158,6 +160,7 @@ static const MemMapEntry base_memmap[] = {
     [VIRT_PCIE_MMIO] =          { 0x10000000, 0x2eff0000 },
     [VIRT_PCIE_PIO] =           { 0x3eff0000, 0x00010000 },
     [VIRT_PCIE_ECAM] =          { 0x3f000000, 0x01000000 },
+    [VIRT_S3C_UART] =           { 0x22e600000, 0x00001000 }, // zhuowei: hack
     /* Actual RAM size depends on initial RAM and device memory settings */
     [VIRT_MEM] =                { GiB, LEGACY_RAMLIMIT_BYTES },
 };
@@ -187,6 +190,7 @@ static const int a15irqmap[] = {
     [VIRT_GPIO] = 7,
     [VIRT_SECURE_UART] = 8,
     [VIRT_ACPI_GED] = 9,
+    [VIRT_S3C_UART] = 10,
     [VIRT_MMIO] = 16, /* ...to 16 + NUM_VIRTIO_TRANSPORTS - 1 */
     [VIRT_GIC_V2M] = 48, /* ...to 48 + NUM_GICV2M_SPIS - 1 */
     [VIRT_SMMU] = 74,    /* ...to 74 + NUM_SMMU_IRQS - 1 */
@@ -813,6 +817,18 @@ static void create_rtc(const VirtMachineState *vms)
     qemu_fdt_setprop_cell(vms->fdt, nodename, "clocks", vms->clock_phandle);
     qemu_fdt_setprop_string(vms->fdt, nodename, "clock-names", "apb_pclk");
     g_free(nodename);
+}
+
+static void create_s3c_uart(const VirtMachineState *vms, int uart,
+                        MemoryRegion *mem, Chardev *chr)
+{
+    hwaddr base = vms->memmap[uart].base;
+    int irq = vms->irqmap[uart];
+
+    DeviceState *dev = exynos4210_uart_create(base, 256, 0, chr, qdev_get_gpio_in(vms->gic, irq));
+    if (!dev) {
+        abort();
+    }
 }
 
 static DeviceState *gpio_key_dev;
@@ -1921,6 +1937,7 @@ static void machvirt_init(MachineState *machine)
         create_secure_ram(vms, secure_sysmem, secure_tag_sysmem);
         create_uart(vms, VIRT_SECURE_UART, secure_sysmem, serial_hd(1));
     }
+    create_s3c_uart(vms, VIRT_S3C_UART, sysmem, serial_hd(2));
 
     if (tag_sysmem) {
         create_tag_ram(tag_sysmem, vms->memmap[VIRT_MEM].base,
