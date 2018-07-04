@@ -77,6 +77,7 @@ enum {
     VIRT_GPIO,
     VIRT_SECURE_UART,
     VIRT_SECURE_MEM,
+    VIRT_S3C_UART,
     VIRT_LOWMEMMAP_LAST,
 };
 
