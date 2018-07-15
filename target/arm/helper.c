@@ -3259,6 +3259,7 @@ static void tlbi_aa64_vae1is_write(CPUARMState *env, const ARMCPRegInfo *ri,
                                                  ARMMMUIdxBit_S1SE1 |
                                                  ARMMMUIdxBit_S1SE0);
     } else {
+        fprintf(stderr, "Vae1is_write: pc=0x%" PRIx64 "\n", env->pc);
         tlb_flush_page_by_mmuidx_all_cpus_synced(cs, pageaddr,
                                                  ARMMMUIdxBit_S12NSE1 |
                                                  ARMMMUIdxBit_S12NSE0);
@@ -9245,7 +9246,7 @@ static bool get_phys_addr_lpae(CPUARMState *env, target_ulong address,
         }
         tbi *= 8;
 
-        /* If we are in 64-bit EL2 or EL3 then there is no TTBR1, so mark it
+        /* If we are in 64-bit EL2 or EL3 then there is no 1, so mark it
          * invalid.
          */
         if (el > 1) {
@@ -10316,7 +10317,7 @@ static ARMCacheAttrs combine_cacheattrs(ARMCacheAttrs s1, ARMCacheAttrs s2)
  * @fi: set to fault info if the translation fails
  * @cacheattrs: (if non-NULL) set to the cacheability/shareability attributes
  */
-static bool get_phys_addr(CPUARMState *env, target_ulong address,
+static bool get_phys_addr_real(CPUARMState *env, target_ulong address,
                           MMUAccessType access_type, ARMMMUIdx mmu_idx,
                           hwaddr *phys_ptr, MemTxAttrs *attrs, int *prot,
                           target_ulong *page_size,
@@ -10435,6 +10436,25 @@ static bool get_phys_addr(CPUARMState *env, target_ulong address,
         return get_phys_addr_v5(env, address, access_type, mmu_idx,
                                     phys_ptr, prot, page_size, fi);
     }
+}
+
+static bool chatty = true;
+
+static bool get_phys_addr(CPUARMState *env, target_ulong address,
+                          MMUAccessType access_type, ARMMMUIdx mmu_idx,
+                          hwaddr *phys_ptr, MemTxAttrs *attrs, int *prot,
+                          target_ulong *page_size,
+                          ARMMMUFaultInfo *fi, ARMCacheAttrs *cacheattrs)
+{
+    if (chatty) {
+        fprintf(stderr, "Get phys addr: 0x%" PRIx64 " %x %x\n", address, access_type, mmu_idx);
+    }
+    bool retval = get_phys_addr_real(env, address, access_type, mmu_idx, phys_ptr,
+        attrs, prot, page_size, fi, cacheattrs);
+    if (chatty) {
+        fprintf(stderr, "Retval: %s phys 0x%" PRIx64 " prot %x type %x\n", retval? "true": "false", *phys_ptr, *prot, fi->type);
+    }
+    return retval;
 }
 
 /* Walk the page table and (if the mapping exists) add the page
@@ -12430,3 +12450,79 @@ void cpu_get_tb_cpu_state(CPUARMState *env, target_ulong *pc,
     *pflags = flags;
     *cs_base = 0;
 }
+
+#ifndef CONFIG_USER_ONLY
+
+static void dump_mmu_lpae(FILE *f, fprintf_function cpu_fprintf, CPUARMState *env, ARMMMUIdx mmu_idx) {
+    //uint64_t ttbr = regime_ttbr(env, mmu_idx, 1);
+    //hwaddr descaddr = extract64(ttbr, 0, 48);
+    // https://developer.arm.com/products/architecture/a-profile/docs/100940/latest/translation-tables-in-armv8-a
+    //cpu_physical_memory_read()
+}
+
+hwaddr arm_cpu_get_phys_page_attrs_memdump(CPUState *cs, vaddr addr,
+                                         MemTxAttrs *attrs, int* protOut, ARMCacheAttrs* cacheAttrsOut)
+{
+    ARMCPU *cpu = ARM_CPU(cs);
+    CPUARMState *env = &cpu->env;
+    hwaddr phys_addr;
+    target_ulong page_size;
+    int prot;
+    bool ret;
+    ARMMMUFaultInfo fi = {};
+    ARMMMUIdx mmu_idx = core_to_arm_mmu_idx(env, cpu_mmu_index(env, false));
+
+    *attrs = (MemTxAttrs) {};
+
+    ret = get_phys_addr(env, addr, 0, mmu_idx, &phys_addr,
+                        attrs, &prot, &page_size, &fi, cacheAttrsOut);
+
+    if (ret) {
+        return -1;
+    }
+    *protOut = prot;
+    return phys_addr;
+}
+
+void dump_mmu(FILE *f, fprintf_function cpu_fprintf, CPUARMState *env) {
+    /*ARMMMUIdx mmu_idx = core_to_arm_mmu_idx(env, cpu_mmu_index(env, false));
+    if (regime_translation_disabled(env, mmu_idx)) {
+        cpu_fprintf(f, "MMU disabled\n");
+        return;
+    }
+    if (!regime_using_lpae_format(env, mmu_idx)) {
+        cpu_fprintf(f, "MMU not in LPAE mode; printing mappings not implemented");
+        return;
+    }
+    dump_mmu_lpae(f, cpu_fprintf, env, mmu_idx);*/
+    chatty = false;
+    cpu_fprintf(f, "what\n");
+    uint64_t lastPhysAddr = 0x1;
+    uint64_t lastVirtAddr = 0x0;
+    int lastProt = 0;
+    uint64_t addr;
+    CPUState *cs = ENV_GET_CPU(env);
+    ARMCacheAttrs lastCacheAttrs = {};
+    for (addr = 0xffffffe000000000ull; addr < 0xffffffff00000000ull; addr += 0x10000) {
+        MemTxAttrs attrs = {};
+        int prot = lastProt;
+        ARMCacheAttrs cacheAttrs = lastCacheAttrs;
+        hwaddr phys_addr = arm_cpu_get_phys_page_attrs_memdump(cs, addr, &attrs, &prot, &cacheAttrs);
+        if (phys_addr != lastPhysAddr + 0x10000 || prot != lastProt || cacheAttrs.attrs != lastCacheAttrs.attrs || cacheAttrs.shareability != lastCacheAttrs.shareability) {
+            if (lastPhysAddr != ~0) {
+                cpu_fprintf(f, "0x%" PRIx64 "-0x%" PRIx64 ": 0x%" PRIx64 " %x %x %x\n",
+                lastVirtAddr, addr, lastPhysAddr, lastProt, lastCacheAttrs.attrs, lastCacheAttrs.shareability);
+            }
+            lastVirtAddr = addr;
+            lastPhysAddr = phys_addr;
+            lastProt = prot;
+            lastCacheAttrs = cacheAttrs;
+        }
+    }
+    if (lastPhysAddr != ~0) {
+        cpu_fprintf(f, "0x%" PRIx64 "-0x%" PRIx64 ": 0x%" PRIx64 " %x %x %x\n",
+            lastVirtAddr, addr, lastPhysAddr, lastProt, lastCacheAttrs.attrs, lastCacheAttrs.shareability);
+    }
+    chatty = true;
+}
+#endif

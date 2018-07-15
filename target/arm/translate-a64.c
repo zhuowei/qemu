@@ -176,6 +176,8 @@ void aarch64_cpu_dump_state(CPUState *cs, FILE *f,
         cpu_fprintf(f, "FPCR: %08x  FPSR: %08x\n",
                     vfp_get_fpcr(env), vfp_get_fpsr(env));
     }
+    cpu_fprintf(f, "TTBR0_EL1=%016" PRIx64 " TTBR1_EL1=%016" PRIx64"\n",
+        env->cp15.ttbr0_el[1], env->cp15.ttbr1_el[1]);
 }
 
 void gen_a64_set_pc_im(uint64_t val)

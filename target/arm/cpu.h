@@ -2983,4 +2983,8 @@ static inline uint64_t *aa64_vfp_qreg(CPUARMState *env, unsigned regno)
 /* Shared between translate-sve.c and sve_helper.c.  */
 extern const uint64_t pred_esz_masks[4];
 
+#ifndef CONFIG_USER_ONLY
+void dump_mmu(FILE *f, fprintf_function cpu_fprintf, CPUARMState *env);
+#endif
+
 #endif

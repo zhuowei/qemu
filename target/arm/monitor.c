@@ -24,6 +24,9 @@
 #include "hw/boards.h"
 #include "kvm_arm.h"
 #include "qapi/qapi-commands-misc.h"
+#include "monitor/monitor.h"
+#include "monitor/hmp-target.h"
+#include "exec/exec-all.h"
 
 static GICCapability *gic_cap_new(int version)
 {
@@ -81,4 +84,29 @@ GICCapabilityList *qmp_query_gic_capabilities(Error **errp)
     head = gic_cap_list_add(head, v3);
 
     return head;
+}
+
+void hmp_info_mem(Monitor *mon, const QDict *qdict)
+{
+    CPUArchState *env;
+
+    env = mon_get_cpu_env();
+    if (!env) {
+        monitor_printf(mon, "No CPU available\n");
+        return;
+    }
+    dump_mmu((FILE *)mon, (fprintf_function)monitor_printf, env);
+}
+
+void hmp_info_tlb(Monitor *mon, const QDict *qdict)
+{
+    CPUArchState *env;
+
+    env = mon_get_cpu_env();
+    if (!env) {
+        monitor_printf(mon, "No CPU available\n");
+        return;
+    }
+    tlb_flush(CPU(arm_env_get_cpu(env)));
+    monitor_printf(mon, "tlb flushed\n");
 }
