@@ -505,6 +505,13 @@ typedef struct CPUARMState {
         uint64_t tfsr_el[4]; /* tfsre0_el1 is index 0.  */
         uint64_t gcr_el1;
         uint64_t rgsr_el1;
+        uint64_t ktrr_mystery0_el1; // ktrr reg 0
+        uint64_t ktrr_mystery1_el1; // ktrr reg 1
+        uint64_t ktrr_lock_el1; // ktrr reg 2
+        uint64_t ktrr_lower_el1; // ktrr reg 3
+        uint64_t ktrr_upper_el1; // ktrr reg 4
+        uint64_t ktrr_mystery6_el1; // ktrr reg 6
+        uint64_t ktrr_mystery7_el1; // ktrr reg 7
     } cp15;
 
     struct {
