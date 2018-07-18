@@ -78,6 +78,8 @@ enum {
     VIRT_SECURE_UART,
     VIRT_SECURE_MEM,
     VIRT_S3C_UART,
+    VIRT_AMCC,
+    VIRT_AIC,
     VIRT_LOWMEMMAP_LAST,
 };
 
