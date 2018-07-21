@@ -1022,7 +1022,7 @@ static size_t macho_setup_bootargs(struct arm_boot_info *info, AddressSpace *as,
     // todo: video, machine type, flags
     boot_args.deviceTreeP = dtb_address;
     boot_args.deviceTreeLength = dtb_size;
-    strlcpy(boot_args.CommandLine, info->kernel_cmdline, sizeof(boot_args.CommandLine));
+    g_strlcpy(boot_args.CommandLine, info->kernel_cmdline, sizeof(boot_args.CommandLine));
     // this is badly named: it's actually
     // how much physical RAM is *not* available to the kernel
     // if left at 0, kernel estimates it by taking difference between
@@ -1179,8 +1179,6 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
                          bootloader_aarch64, fixupcontext, as);
     *pentry = info->loader_start;
 
-    fprintf(stderr, "%llx %llx %llx\n", low_addr_temp, high_addr_temp, pc);
-    fprintf(stderr, "%llx\n", *(uint64_t*)rom_buf);
     out:
     if (data) {
         g_free(data);
@@ -1201,7 +1199,6 @@ static void arm_setup_direct_kernel_boot(ARMCPU *cpu,
     int kernel_size;
     int initrd_size;
     int is_linux = 0;
-    int is_xnu = 0;
     uint64_t elf_entry;
     /* Addresses of first byte used and first byte not used by the image */
     uint64_t image_low_addr = 0, image_high_addr = 0;
@@ -1259,7 +1256,6 @@ static void arm_setup_direct_kernel_boot(ARMCPU *cpu,
         kernel_size = arm_load_macho(info, &entry, as);
         if (kernel_size >= 0) {
             fprintf(stderr, "xnu\n");
-            is_xnu = 1;
         }
     }
 
