@@ -1215,6 +1215,8 @@ static void *spapr_build_fdt(sPAPRMachineState *spapr,
     _FDT(fdt_setprop_string(fdt, 0, "device_type", "chrp"));
     _FDT(fdt_setprop_string(fdt, 0, "model", "IBM pSeries (emulated by qemu)"));
     _FDT(fdt_setprop_string(fdt, 0, "compatible", "qemu,pseries"));
+    /* mark as compatible with AIX diagnostics CD */
+    _FDT(fdt_setprop_empty(fdt, 0, "ibm,aix-diagnostics"));
 
     /*
      * Add info to guest to indentify which host is it being run on
