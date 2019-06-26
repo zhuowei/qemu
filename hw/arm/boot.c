@@ -1173,8 +1173,10 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
 
     // write bootloader
     uint32_t fixupcontext[FIXUP_MAX];
-    fixupcontext[FIXUP_ARGPTR] = bootargs_addr;
-    fixupcontext[FIXUP_ENTRYPOINT] = pc;
+    fixupcontext[FIXUP_ARGPTR_LO] = bootargs_addr;
+    fixupcontext[FIXUP_ARGPTR_HI] = bootargs_addr >> 32;
+    fixupcontext[FIXUP_ENTRYPOINT_LO] = pc;
+    fixupcontext[FIXUP_ENTRYPOINT_HI] = pc >> 32;
     write_bootloader("bootloader", info->loader_start,
                          bootloader_aarch64, fixupcontext, as);
     *pentry = info->loader_start;

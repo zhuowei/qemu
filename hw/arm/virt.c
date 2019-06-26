@@ -143,7 +143,7 @@ static const MemMapEntry base_memmap[] = {
     [VIRT_PCIE_MMIO] =          { 0x10000000, 0x2eff0000 },
     [VIRT_PCIE_PIO] =           { 0x3eff0000, 0x00010000 },
     [VIRT_PCIE_ECAM] =          { 0x3f000000, 0x01000000 },
-    [VIRT_MEM] =                { 0x40000000, RAMLIMIT_BYTES },
+    [VIRT_MEM] =                { 0x40000000, LEGACY_RAMLIMIT_BYTES },
     // zhuowei: t8015 peripherals
     [VIRT_AMCC] =               { 0x200000000, 0x00300000 }, // zhuowei: hack
     [VIRT_S3C_UART] =           { 0x22e600000, 0x00001000 }, // zhuowei: hack
