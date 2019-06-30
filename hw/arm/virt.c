@@ -162,9 +162,10 @@ static const MemMapEntry base_memmap[] = {
     [VIRT_PCIE_ECAM] =          { 0x3f000000, 0x01000000 },
     // zhuowei: t8015 peripherals
     [VIRT_AMCC] =               { 0x200000000, 0x00300000 }, // zhuowei: hack
-    [VIRT_S3C_UART] =           { 0x22e600000, 0x00001000 }, // zhuowei: hack
-    [VIRT_AIC] =                { 0x232100000, 0x00009000 }, // zhuowei: hack
+    [VIRT_S3C_UART] =           { 0x235200000, 0x00001000 }, // zhuowei: hack
+    [VIRT_AIC] =                { 0x23b100000, 0x00009000 }, // zhuowei: hack
     /* Actual RAM size depends on initial RAM and device memory settings */
+    // zhuowei: this is wrong; the real device has it at 0x800000000
     [VIRT_MEM] =                { GiB, LEGACY_RAMLIMIT_BYTES },
 };
 
