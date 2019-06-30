@@ -493,6 +493,7 @@ typedef struct CPUARMState {
         uint64_t ktrr_upper_el1; // ktrr reg 4
         uint64_t ktrr_mystery6_el1; // ktrr reg 6
         uint64_t ktrr_mystery7_el1; // ktrr reg 7
+        uint64_t migsts_el1; // A12 Migration Status register
     } cp15;
 
     struct {

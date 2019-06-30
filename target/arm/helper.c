@@ -4483,6 +4483,11 @@ static const ARMCPRegInfo v8_cp_reginfo[] = {
       .opc0 = 3, .opc1 = 4, .crn = 15, .crm = 2, .opc2 = 7,
       .resetvalue = 0,
       .access = PL1_RW, .fieldoffset = offsetof(CPUARMState, cp15.ktrr_mystery7_el1) },
+    // zhuowei: hack: MIGSTS (big/little core migration status) for Apple A12
+    { .name = "MIGSTS_EL1", .state = ARM_CP_STATE_AA64,
+      .opc0 = 3, .opc1 = 4, .crn = 15, .crm = 0, .opc2 = 4,
+      .resetvalue = 0x2, // xnu checks for this bit during boot
+      .access = PL1_RW, .fieldoffset = offsetof(CPUARMState, cp15.migsts_el1) },
     REGINFO_SENTINEL
 };
 
