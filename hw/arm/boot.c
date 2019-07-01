@@ -1081,6 +1081,24 @@ static void macho_add_ramdisk_to_dtb(uint8_t* dtb_data, size_t dtb_size, uint64_
     valuePtr[1] = ramdisk_size;
 }
 
+static void macho_add_trustcache_to_dtb(uint8_t* dtb_data, size_t dtb_size, uint64_t addr, uint64_t size) {
+    struct xnu_DeviceTreeNodeProperty* dtNode = NULL;
+    for (size_t i = 0; i < dtb_size; i++) {
+        if (strncmp((const char*)dtb_data + i, "MemoryMapReserved-1", xnu_kPropNameLength) == 0) {
+            dtNode = (struct xnu_DeviceTreeNodeProperty*)(dtb_data + i);
+            break;
+        }
+    }
+    if (!dtNode) {
+        fprintf(stderr, "Can't write device tree node for ramdisk!\n");
+        abort();
+    }
+    strncpy(dtNode->name, "TrustCache", xnu_kPropNameLength);
+    uint64_t* valuePtr = (uint64_t*)&dtNode->value;
+    valuePtr[0] = addr;
+    valuePtr[1] = size;
+}
+
 #define VAtoPA(addr) (((addr) & 0x3fffffff) + mem_base + kernel_load_offset)
 
 static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, AddressSpace *as)
@@ -1143,6 +1161,25 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
         }
     }
 
+    // this goes in front of the kernel's text section.
+    // otherwise we get a panic on iOS 13 with "EXTRADATA is in an unexpected place"
+    // iOS 12's new style kernel caches reserves space for this with
+    // __PRELINK_TEXT section, an empty section at start of kernel address space.
+    // note: this is different than what Aleph Security got. Is this an iOS 13 change?
+    uint64_t trustcache_address = low_addr_temp + 0x100000;
+    gsize trustcache_size = 0;
+
+    if (getenv("QEMU_TRUSTCACHE")) {
+        uint8_t* trustcache_data = NULL;
+        if (g_file_get_contents(getenv("QEMU_TRUSTCACHE"), (char**) &trustcache_data, &trustcache_size, NULL)) {
+            memcpy(rom_buf + (trustcache_address - low_addr_temp), trustcache_data, trustcache_size);
+            g_free(trustcache_data);
+        } else {
+            fprintf(stderr, "trustcache failed?!\n");
+            abort();
+        }
+    }
+
     uint64_t dtb_address = load_extra_offset;
     gsize dtb_size = 0;
     // load device tree
@@ -1152,6 +1189,9 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
             info->dtb_filename = NULL;
             if (ramdisk_size != 0) {
                 macho_add_ramdisk_to_dtb(dtb_data, dtb_size, VAtoPA(ramdisk_address), ramdisk_size);
+            }
+            if (trustcache_size != 0) {
+                macho_add_trustcache_to_dtb(dtb_data, dtb_size, VAtoPA(trustcache_address), trustcache_size);
             }
             rom_add_blob_fixed_as("xnu_dtb", dtb_data, dtb_size, VAtoPA(dtb_address), as);
             load_extra_offset = (load_extra_offset + dtb_size + 0xffffull) & ~0xffffull;
