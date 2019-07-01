@@ -1697,6 +1697,11 @@ static void handle_sys(DisasContext *s, uint32_t insn, bool isread,
                       isread ? "read" : "write", op0, op1, crn, crm, op2);
         // zhuowei: just ignore
         // unallocated_encoding(s);
+        if (isread) {
+          // zhuowei: read on invalid register will always return 0
+          tcg_rt = cpu_reg(s, rt);
+          tcg_gen_movi_i64(tcg_rt, 0);
+        }
         return;
     }
 
