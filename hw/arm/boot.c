@@ -1143,6 +1143,8 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     ret = true;
 
     uint64_t load_extra_offset = high_addr_temp;
+    // align it to 16k: for some reason ramdisks don't like being placed directly after kernel
+    load_extra_offset = (load_extra_offset + 0xffffull) & ~0xffffull;
 
     uint64_t ramdisk_address = load_extra_offset;
     gsize ramdisk_size = 0;
