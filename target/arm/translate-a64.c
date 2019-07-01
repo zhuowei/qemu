@@ -3112,6 +3112,8 @@ static void disas_ldst_atomic(DisasContext *s, uint32_t insn,
     int o3_opc = extract32(insn, 12, 4);
     TCGv_i64 tcg_rs, clean_addr;
     AtomicThreeOpFn *fn;
+    // zhuowei: hack
+    bool isLDAPR = false;
 
     if (is_vector || !dc_isar_feature(aa64_atomics, s)) {
         unallocated_encoding(s);
@@ -3145,6 +3147,9 @@ static void disas_ldst_atomic(DisasContext *s, uint32_t insn,
     case 010: /* SWP */
         fn = tcg_gen_atomic_xchg_i64;
         break;
+    case 014: /* LDAPR */
+        isLDAPR = true;
+        break;
     default:
         unallocated_encoding(s);
         return;
@@ -3154,6 +3159,13 @@ static void disas_ldst_atomic(DisasContext *s, uint32_t insn,
         gen_check_sp_alignment(s);
     }
     clean_addr = clean_data_tbi(s, cpu_reg_sp(s, rn));
+    // zhuowei: hack
+    if (isLDAPR) {
+        do_gpr_ld(s, cpu_reg(s, rt), clean_addr, size, false, false, true, rt,
+                  disas_ldst_compute_iss_sf(size, false, 0), /* is_lasr*/false);
+        tcg_gen_mb(TCG_MO_ALL | TCG_BAR_LDAQ);
+        return;
+    }
     tcg_rs = read_cpu_reg(s, rs, true);
 
     if (o3_opc == 1) { /* LDCLR */
