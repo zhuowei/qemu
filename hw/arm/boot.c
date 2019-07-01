@@ -1174,6 +1174,9 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
         if (g_file_get_contents(getenv("QEMU_TRUSTCACHE"), (char**) &trustcache_data, &trustcache_size, NULL)) {
             memcpy(rom_buf + (trustcache_address - low_addr_temp), trustcache_data, trustcache_size);
             g_free(trustcache_data);
+            // hack: just set 0x100000 as trustcache size
+            // (don't have time to debug rounding.)
+            trustcache_size = 0x100000;
         } else {
             fprintf(stderr, "trustcache failed?!\n");
             abort();
