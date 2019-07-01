@@ -162,6 +162,7 @@ static const MemMapEntry base_memmap[] = {
     [VIRT_PCIE_ECAM] =          { 0x3f000000, 0x01000000 },
     // zhuowei: t8015 peripherals
     [VIRT_AMCC] =               { 0x200000000, 0x00300000 }, // zhuowei: hack
+    [VIRT_AIO] =                { 0x210000000, 0x10000000 }, // zhuowei: hack
     [VIRT_S3C_UART] =           { 0x235200000, 0x00001000 }, // zhuowei: hack
     [VIRT_AIC] =                { 0x23b100000, 0x00009000 }, // zhuowei: hack
     /* Actual RAM size depends on initial RAM and device memory settings */
@@ -1999,6 +2000,11 @@ static void machvirt_init(MachineState *machine)
     memory_region_allocate_system_memory(aic, NULL, "mach-virt.aic",
                                          vms->memmap[VIRT_AIC].size);
     memory_region_add_subregion(sysmem, vms->memmap[VIRT_AIC].base, aic);
+
+    MemoryRegion *aio = g_new(MemoryRegion, 1);
+    memory_region_allocate_system_memory(aio, NULL, "mach-virt.aio",
+                                         vms->memmap[VIRT_AIO].size);
+    memory_region_add_subregion(sysmem, vms->memmap[VIRT_AIO].base, aio);
 
     vms->bootinfo.ram_size = machine->ram_size;
     vms->bootinfo.nb_cpus = smp_cpus;
