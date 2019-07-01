@@ -80,6 +80,7 @@ enum {
     VIRT_S3C_UART,
     VIRT_AMCC,
     VIRT_AIC,
+    VIRT_AIO,
     VIRT_LOWMEMMAP_LAST,
 };
 
