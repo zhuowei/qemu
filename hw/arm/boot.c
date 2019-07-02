@@ -1099,7 +1099,7 @@ static void macho_add_trustcache_to_dtb(uint8_t* dtb_data, size_t dtb_size, uint
     valuePtr[1] = size;
 }
 
-#define VAtoPA(addr) (((addr) & 0x3fffffff) + mem_base + kernel_load_offset)
+#define VAtoPA(addr) (((addr) & 0xffffffff) + mem_base + kernel_load_offset)
 
 static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, AddressSpace *as)
 {
