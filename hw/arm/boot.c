@@ -1139,7 +1139,6 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
         cmd = (struct load_command*)((char*)cmd + cmd->cmdsize);
     }
     hwaddr rom_base = VAtoPA(low_addr_temp);
-    rom_add_blob_fixed_as("macho", rom_buf, rom_buf_size, rom_base, as);
     ret = true;
 
     uint64_t load_extra_offset = high_addr_temp;
@@ -1206,6 +1205,9 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
             abort();
         }
     }
+
+    // actually load the kernel
+    rom_add_blob_fixed_as("macho", rom_buf, rom_buf_size, rom_base, as);
 
     // fixup boot args
     // note: device tree and args must follow kernel and be included in the kernel data size.
