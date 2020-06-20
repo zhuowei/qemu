@@ -1062,9 +1062,9 @@ void HELPER(exception_return)(CPUARMState *env, uint64_t new_pc)
         }
         env->pc = new_pc;
 
-        qemu_log_mask(CPU_LOG_INT, "Exception return from AArch64 EL%d to "
-                      "AArch64 EL%d PC 0x%" PRIx64 "\n",
-                      cur_el, new_el, env->pc);
+        //qemu_log_mask(CPU_LOG_INT, "Exception return from AArch64 EL%d to "
+        //              "AArch64 EL%d PC 0x%" PRIx64 "\n",
+        //              cur_el, new_el, env->pc);
     }
 
     /*

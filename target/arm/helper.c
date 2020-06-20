@@ -8826,6 +8826,7 @@ uint32_t arm_phys_excp_target_el(CPUState *cs, uint32_t excp_idx,
 
 void arm_log_exception(int idx)
 {
+    if (idx == EXCP_FIQ) return; // zhuowei: hack
     if (qemu_loglevel_mask(CPU_LOG_INT)) {
         const char *exc = NULL;
         static const char * const excnames[] = {
@@ -9486,8 +9487,10 @@ static void arm_cpu_do_interrupt_aarch64(CPUState *cs)
     }
     env->banked_spsr[aarch64_banked_spsr_index(new_el)] = old_mode;
 
-    qemu_log_mask(CPU_LOG_INT, "...with ELR 0x%" PRIx64 "\n",
+    if (cs->exception_index != EXCP_FIQ) {
+        qemu_log_mask(CPU_LOG_INT, "...with ELR 0x%" PRIx64 "\n",
                   env->elr_el[new_el]);
+    }
 
     if (cpu_isar_feature(aa64_pan, cpu)) {
         /* The value of PSTATE.PAN is normally preserved, except when ... */
@@ -9517,8 +9520,10 @@ static void arm_cpu_do_interrupt_aarch64(CPUState *cs)
 
     env->pc = addr;
 
-    qemu_log_mask(CPU_LOG_INT, "...to EL%d PC 0x%" PRIx64 " PSTATE 0x%x\n",
+    if (cs->exception_index != EXCP_FIQ) {
+        qemu_log_mask(CPU_LOG_INT, "...to EL%d PC 0x%" PRIx64 " PSTATE 0x%x\n",
                   new_el, env->pc, pstate_read(env));
+    }
 }
 
 /*
@@ -9564,13 +9569,15 @@ void arm_cpu_do_interrupt(CPUState *cs)
     assert(!arm_feature(env, ARM_FEATURE_M));
 
     arm_log_exception(cs->exception_index);
-    qemu_log_mask(CPU_LOG_INT, "...from EL%d to EL%d\n", arm_current_el(env),
+    if(cs->exception_index != EXCP_FIQ) {
+        qemu_log_mask(CPU_LOG_INT, "...from EL%d to EL%d\n", arm_current_el(env),
                   new_el);
-    if (qemu_loglevel_mask(CPU_LOG_INT)
-        && !excp_is_internal(cs->exception_index)) {
-        qemu_log_mask(CPU_LOG_INT, "...with ESR 0x%x/0x%" PRIx32 "\n",
-                      syn_get_ec(env->exception.syndrome),
-                      env->exception.syndrome);
+        if (qemu_loglevel_mask(CPU_LOG_INT)
+            && !excp_is_internal(cs->exception_index)) {
+            qemu_log_mask(CPU_LOG_INT, "...with ESR 0x%x/0x%" PRIx32 "\n",
+                        syn_get_ec(env->exception.syndrome),
+                        env->exception.syndrome);
+        }
     }
 
     if (arm_is_psci_call(cpu, cs->exception_index)) {
