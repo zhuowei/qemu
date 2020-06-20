@@ -53,7 +53,7 @@ static void hx_aic_update(HxAICState *s) {
 
     s->vector = 0;
 
-    for (i = 0; i < HX_AIC_REG_NUM; i++) {
+    for (i = 0; false && i < HX_AIC_REG_NUM; i++) {
         irq |= s->irq_pending[i] & s->enable[i];
         //fiq |= s->select[i] & s->irq_pending[i] & ~s->mask[i];
 
