@@ -126,7 +126,9 @@ static void aarch64_a57_initfn(Object *obj)
     cpu->isar.id_aa64pfr0 = 0x00002222;
     cpu->isar.id_aa64dfr0 = 0x10305106;
     cpu->isar.id_aa64isar0 = 0x00011120;
-    cpu->isar.id_aa64mmfr0 = 0x00001124;
+    // TODO(zhuowei): hack to enable 16K granules on emulated a57
+    // TGRAN16.
+    cpu->isar.id_aa64mmfr0 = 0x00001124 | (1 << 20);
     cpu->isar.dbgdidr = 0x3516d000;
     cpu->clidr = 0x0a200023;
     cpu->ccsidr[0] = 0x701fe00a; /* 32KB L1 dcache */
