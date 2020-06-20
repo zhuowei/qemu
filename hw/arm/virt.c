@@ -163,7 +163,6 @@ static const MemMapEntry base_memmap[] = {
     /* Actual RAM size depends on initial RAM and device memory settings */
     [VIRT_MEM] =                { GiB, LEGACY_RAMLIMIT_BYTES },
     [VIRT_S3C_UART] =           { 0x22e600000, 0x00001000 }, // zhuowei: hack
-    [VIRT_GIC_REDIST2] =        { 0x4000000000ULL, 0x4000000 },
 };
 
 /*
@@ -822,13 +821,13 @@ static void create_rtc(const VirtMachineState *vms)
     g_free(nodename);
 }
 
-static void create_s3c_uart(const VirtMachineState *vms, qemu_irq *pic, int uart,
+static void create_s3c_uart(const VirtMachineState *vms, int uart,
                         MemoryRegion *mem, Chardev *chr)
 {
     hwaddr base = vms->memmap[uart].base;
     int irq = vms->irqmap[uart];
 
-    DeviceState *dev = exynos4210_uart_create(base, 256, 0, chr, pic[irq]);
+    DeviceState *dev = exynos4210_uart_create(base, 256, 0, chr, qdev_get_gpio_in(vms->gic, irq));
     if (!dev) {
         abort();
     }
@@ -1879,7 +1878,7 @@ static void machvirt_init(MachineState *machine)
         create_secure_ram(vms, secure_sysmem);
         create_uart(vms, VIRT_SECURE_UART, secure_sysmem, serial_hd(1));
     }
-    create_s3c_uart(vms, pic, VIRT_S3C_UART, sysmem, serial_hd(2));
+    create_s3c_uart(vms, VIRT_S3C_UART, sysmem, serial_hd(2));
 
     vms->highmem_ecam &= vms->highmem && (!firmware_loaded || aarch64);
 
