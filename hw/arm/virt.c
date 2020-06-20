@@ -864,11 +864,25 @@ static void create_hx_gpio(VirtMachineState *vms) {
 }
 
 static void create_hx_ram_stubs(VirtMachineState *vms, MemoryRegion *sysmem) {
-    uint64_t kRegions[] = {0x20e0801000, 0x1000};
+    uint64_t kRegions[] = {
+        // clocks 1
+        0x20e080000, 0x1000,
+        // clocks 2
+        0x20e078000, 0x1000,
+        // dwc2
+        0x20c100000, 0x10000,
+        // i2c 0-3
+        0x20a110000, 0x4000,
+        // cpufreq
+        0x202f20000, 0x70000,
+        // more cpufreq
+        0x20e068000, 0x70000,
+        };
     for (int i = 0; i < sizeof(kRegions) / sizeof(*kRegions); i += 2) {
-        fprintf(stderr, "create %i\n", i);
         MemoryRegion *region = g_new(MemoryRegion, 1);
-        memory_region_init_ram(region, NULL, "mach-virt.stub",
+        char tmp[256];
+        snprintf(tmp, sizeof(tmp), "mach-virt.stub%d", i / 2);
+        memory_region_init_ram(region, NULL, tmp,
                                             kRegions[i+1], &error_fatal);
         memory_region_add_subregion(sysmem, kRegions[i], region);
     }
