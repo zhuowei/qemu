@@ -65,7 +65,7 @@ static void hx_aic_update(HxAICState *s) {
         }
     }
     if (s->vector) {
-        fprintf(stderr, "hx_aic_update: irq %x\n", s->vector);
+        // fprintf(stderr, "hx_aic_update: irq %x\n", s->vector);
     }
 
     qemu_set_irq(s->parent_irq, !!irq);
@@ -95,7 +95,7 @@ static uint64_t hx_aic_read(void *opaque, hwaddr offset, unsigned size)
         case REG_IRQ_ACK:
             return s->vector;
         default:
-            fprintf(stderr, "hx_aic_read: %llx %x\n", offset, size);
+            // fprintf(stderr, "hx_aic_read: %llx %x\n", offset, size);
             break;
     }
     return 0;
@@ -111,11 +111,11 @@ static void hx_aic_write(void *opaque, hwaddr offset, uint64_t value,
     switch (offset) {
         case REG_IRQ_ENABLE_BASE ... REG_IRQ_ENABLE_BASE + (HX_AIC_REG_NUM << 2):
             index = (offset - REG_IRQ_ENABLE_BASE) >> 2;
-            fprintf(stderr, "enable irq set!\n");
+            // fprintf(stderr, "enable irq set!\n");
             s->enable[index] |= value;
             break;
         case REG_IRQ_DISABLE_BASE ... REG_IRQ_DISABLE_BASE + (HX_AIC_REG_NUM << 2):
-            fprintf(stderr, "disable irq set!\n");
+            // fprintf(stderr, "disable irq set!\n");
             index = (offset - REG_IRQ_DISABLE_BASE) >> 2;
             s->enable[index] &= ~value;
             break;
