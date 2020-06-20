@@ -155,6 +155,7 @@ typedef struct {
     DeviceState *acpi_dev;
     Notifier powerdown_notifier;
     DeviceState *aic;
+    DeviceState *gpio;
 } VirtMachineState;
 
 #define VIRT_ECAM_ID(high) (high ? VIRT_HIGH_PCIE_ECAM : VIRT_PCIE_ECAM)

@@ -81,6 +81,7 @@
 
 #include "hw/arm/exynos4210.h"
 #include "hw/intc/hx-aic.h"
+#include "hw/gpio/hx_gpio.h"
 
 #define DEFINE_VIRT_MACHINE_LATEST(major, minor, latest) \
     static void virt_##major##_##minor##_class_init(ObjectClass *oc, \
@@ -848,6 +849,15 @@ static void create_s3c_uart(const VirtMachineState *vms, int uart,
     if (!dev) {
         abort();
     }
+}
+
+#define HX_GPIO_REG_BASE 0x20f100000
+static void create_hx_gpio(VirtMachineState *vms) {
+    vms->gpio = qdev_new(TYPE_HX_GPIO);
+    sysbus_realize(SYS_BUS_DEVICE(vms->gpio), &error_fatal);
+
+    SysBusDevice *sysbusdev = SYS_BUS_DEVICE(vms->gpio);
+    sysbus_mmio_map(sysbusdev, 0, HX_GPIO_REG_BASE);
 }
 
 static DeviceState *gpio_key_dev;
@@ -1888,6 +1898,7 @@ static void machvirt_init(MachineState *machine)
     create_gic(vms);
     // TODO(zhuowei): hack
     create_aic(vms);
+    create_hx_gpio(vms);
 
     fdt_add_pmu_nodes(vms);
 

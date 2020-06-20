@@ -4,6 +4,7 @@ common-obj-$(CONFIG_PUV3) += puv3_gpio.o
 common-obj-$(CONFIG_ZAURUS) += zaurus.o
 common-obj-$(CONFIG_E500) += mpc8xxx.o
 common-obj-$(CONFIG_GPIO_KEY) += gpio_key.o
+common-obj-y += hx_gpio.o
 
 common-obj-$(CONFIG_OMAP) += omap_gpio.o
 common-obj-$(CONFIG_IMX) += imx_gpio.o
