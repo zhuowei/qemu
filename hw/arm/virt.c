@@ -863,6 +863,17 @@ static void create_hx_gpio(VirtMachineState *vms) {
     sysbus_connect_irq(sysbusdev, 0, qdev_get_gpio_in(vms->aic, irq));
 }
 
+static void create_hx_ram_stubs(VirtMachineState *vms, MemoryRegion *sysmem) {
+    uint64_t kRegions[] = {0x20e0801000, 0x1000};
+    for (int i = 0; i < sizeof(kRegions) / sizeof(*kRegions); i += 2) {
+        fprintf(stderr, "create %i\n", i);
+        MemoryRegion *region = g_new(MemoryRegion, 1);
+        memory_region_init_ram(region, NULL, "mach-virt.stub",
+                                            kRegions[i+1], &error_fatal);
+        memory_region_add_subregion(sysmem, kRegions[i], region);
+    }
+}
+
 static DeviceState *gpio_key_dev;
 static void virt_powerdown_req(Notifier *n, void *opaque)
 {
@@ -1912,6 +1923,7 @@ static void machvirt_init(MachineState *machine)
         create_uart(vms, VIRT_SECURE_UART, secure_sysmem, serial_hd(1));
     }
     create_s3c_uart(vms, VIRT_S3C_UART, sysmem, serial_hd(2));
+    create_hx_ram_stubs(vms, sysmem);
 
     vms->highmem_ecam &= vms->highmem && (!firmware_loaded || aarch64);
 
