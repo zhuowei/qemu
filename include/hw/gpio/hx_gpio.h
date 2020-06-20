@@ -4,6 +4,7 @@
 typedef struct HxGpioState {
     SysBusDevice parent_obj;
     MemoryRegion iomem;
+    qemu_irq irq0;
 } HxGpioState;
 
 #define TYPE_HX_GPIO "hx_gpio"

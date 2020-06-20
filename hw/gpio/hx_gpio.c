@@ -7,6 +7,7 @@
 #include "migration/vmstate.h"
 #include "hw/gpio/hx_gpio.h"
 #include "hw/irq.h"
+#define HX_GPIO_INT_NR 256
 
 static uint64_t hx_gpio_read(void *opaque, hwaddr offset, unsigned size)
 {
@@ -33,6 +34,7 @@ static void hx_gpio_init(Object *obj)
     memory_region_init_io(&s->iomem, obj,
             &hx_gpio_ops, s, "hx_gpio", 0x100000);
     sysbus_init_mmio(sbd, &s->iomem);
+    sysbus_init_irq(sbd, &s->irq0);
 }
 
 static void hx_gpio_class_init(ObjectClass *klass, void *data)

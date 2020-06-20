@@ -7,6 +7,7 @@
 #include "qemu/module.h"
 
 // Based on https://github.com/corellium/linux-sandcastle/blob/0c2f7dda13d67bb7e06123df516f8bdb1000a79b/drivers/irqchip/irq-hx-aic.c
+// also on allwinner-a10-pic.c
 
 #define REG_ID_REVISION                 0x0000
 #define REG_ID_CONFIG                   0x0004
@@ -43,22 +44,58 @@
 #define  REG_PERCPU(r,c)                ((r)+REG_CPU_REGION-REG_CPU_LOCAL+((c)<<REG_CPU_SHIFT))
 
 // TODO(zhuowei)
-#define HX_AIC_INT_NR 64
+#define REG_IRQ_DISABLE_BASE 0x4100
+#define REG_IRQ_ENABLE_BASE 0x4180
+
+static void hx_aic_update(HxAICState *s) {
+    uint8_t i;
+    int irq = 0, zeroes;
+
+    s->vector = 0;
+
+    for (i = 0; i < HX_AIC_REG_NUM; i++) {
+        irq |= s->irq_pending[i] & s->enable[i];
+        //fiq |= s->select[i] & s->irq_pending[i] & ~s->mask[i];
+
+        if (!s->vector) {
+            zeroes = ctz32(s->irq_pending[i] & s->enable[i]);
+            if (zeroes != 32) {
+                s->vector = REG_IRQ_ACK_TYPE_IRQ | (i * 32 + zeroes);
+            }
+        }
+    }
+    if (s->vector) {
+        fprintf(stderr, "hx_aic_update: irq %x\n", s->vector);
+    }
+
+    qemu_set_irq(s->parent_irq, !!irq);
+    //qemu_set_irq(s->parent_fiq, !!fiq);
+}
 
 static void hx_aic_set_irq(void *opaque, int irq, int level)
 {
-    fprintf(stderr, "hx_aic_set_irq: %d %d\n", irq, level);
+    // fprintf(stderr, "hx_aic_set_irq: %d %d\n", irq, level);
+    HxAICState *s = opaque;
+
+    if (level) {
+        set_bit(irq % 32, (void *)&s->irq_pending[irq / 32]);
+    } else {
+        clear_bit(irq % 32, (void *)&s->irq_pending[irq / 32]);
+    }
+    hx_aic_update(s);
 }
 
 static uint64_t hx_aic_read(void *opaque, hwaddr offset, unsigned size)
 {
-    //HxAICState *s = opaque;
+    HxAICState *s = opaque;
     // TODO(zhuowei)
-    fprintf(stderr, "hx_aic_read: %llx %x\n", offset, size);
     switch (offset) {
         case REG_ID_CONFIG:
             return HX_AIC_INT_NR;
+        case REG_IRQ_ACK:
+            return s->vector;
         default:
+            fprintf(stderr, "hx_aic_read: %llx %x\n", offset, size);
             break;
     }
     return 0;
@@ -67,9 +104,23 @@ static uint64_t hx_aic_read(void *opaque, hwaddr offset, unsigned size)
 static void hx_aic_write(void *opaque, hwaddr offset, uint64_t value,
                              unsigned size)
 {
-    //HxAICState *s = opaque;
+    HxAICState *s = opaque;
+    int index;
     // TODO(zhuowei)
     fprintf(stderr, "hx_aic_write: %llx %llx %x\n", offset, value, size);
+    switch (offset) {
+        case REG_IRQ_ENABLE_BASE ... REG_IRQ_ENABLE_BASE + (HX_AIC_REG_NUM << 2):
+            index = (offset - REG_IRQ_ENABLE_BASE) >> 2;
+            fprintf(stderr, "enable irq set!\n");
+            s->enable[index] |= value;
+            break;
+        case REG_IRQ_DISABLE_BASE ... REG_IRQ_DISABLE_BASE + (HX_AIC_REG_NUM << 2):
+            fprintf(stderr, "disable irq set!\n");
+            index = (offset - REG_IRQ_DISABLE_BASE) >> 2;
+            s->enable[index] &= ~value;
+            break;
+    }
+    hx_aic_update(s);
 }
 
 static const MemoryRegionOps hx_aic_ops = {
@@ -92,6 +143,12 @@ static void hx_aic_init(Object *obj)
 
 static void hx_aic_reset(DeviceState *d)
 {
+    HxAICState *s = HX_AIC(d);
+    int i;
+    for (i = 0; i < HX_AIC_REG_NUM; i++) {
+        s->irq_pending[i] = 0;
+        s->enable[i] = 0;
+    }
 }
 
 static void hx_aic_class_init(ObjectClass *klass, void *data)

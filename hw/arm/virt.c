@@ -843,9 +843,10 @@ static void create_s3c_uart(const VirtMachineState *vms, int uart,
                         MemoryRegion *mem, Chardev *chr)
 {
     hwaddr base = vms->memmap[uart].base;
-    int irq = vms->irqmap[uart];
+    // https://github.com/corellium/linux-sandcastle/blob/0c2f7dda13d67bb7e06123df516f8bdb1000a79b/arch/arm64/boot/dts/hx/hx-h9p-fb.dts#L340
+    int irq = 218;
 
-    DeviceState *dev = exynos4210_uart_create(base, 256, 0, chr, qdev_get_gpio_in(vms->gic, irq));
+    DeviceState *dev = exynos4210_uart_create(base, 256, 0, chr, qdev_get_gpio_in(vms->aic, irq));
     if (!dev) {
         abort();
     }
@@ -858,6 +859,8 @@ static void create_hx_gpio(VirtMachineState *vms) {
 
     SysBusDevice *sysbusdev = SYS_BUS_DEVICE(vms->gpio);
     sysbus_mmio_map(sysbusdev, 0, HX_GPIO_REG_BASE);
+    int irq = 42; // TODO(zhuowei): more?
+    sysbus_connect_irq(sysbusdev, 0, qdev_get_gpio_in(vms->aic, irq));
 }
 
 static DeviceState *gpio_key_dev;
