@@ -80,6 +80,7 @@
 #include "qemu/guest-random.h"
 
 #include "hw/arm/exynos4210.h"
+#include "hw/intc/hx-aic.h"
 
 #define DEFINE_VIRT_MACHINE_LATEST(major, minor, latest) \
     static void virt_##major##_##minor##_class_init(ObjectClass *oc, \
@@ -749,6 +750,22 @@ static void create_gic(VirtMachineState *vms)
     } else if (type == 2) {
         create_v2m(vms);
     }
+}
+#define HX_AIC_REG_BASE 0x20e100000
+static void create_aic(VirtMachineState *vms) {
+    vms->aic = qdev_new(TYPE_HX_AIC);
+
+    sysbus_realize(SYS_BUS_DEVICE(vms->aic), &error_fatal);
+
+    SysBusDevice *sysbusdev;
+    sysbusdev = SYS_BUS_DEVICE(vms->aic);
+    sysbus_mmio_map(sysbusdev, 0, HX_AIC_REG_BASE);
+    // TODO(zhuowei) multi cpu
+    DeviceState *cpudev = DEVICE(qemu_get_cpu(0));
+    sysbus_connect_irq(sysbusdev, 0,
+                       qdev_get_gpio_in(cpudev, ARM_CPU_IRQ));
+    //sysbus_connect_irq(sysbusdev, 1,
+    //                   qdev_get_gpio_in(DEVICE(&s->cpu), ARM_CPU_FIQ));
 }
 
 static void create_uart(const VirtMachineState *vms, int uart,
@@ -1869,6 +1886,8 @@ static void machvirt_init(MachineState *machine)
     virt_flash_fdt(vms, sysmem, secure_sysmem ?: sysmem);
 
     create_gic(vms);
+    // TODO(zhuowei): hack
+    create_aic(vms);
 
     fdt_add_pmu_nodes(vms);
 
