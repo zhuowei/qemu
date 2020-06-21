@@ -1992,18 +1992,18 @@ static void machvirt_init(MachineState *machine)
 
     // zhuowei: hack: amcc
     MemoryRegion *mcc = g_new(MemoryRegion, 1);
-    memory_region_allocate_system_memory(mcc, NULL, "mach-virt.mcc",
-                                         vms->memmap[VIRT_AMCC].size);
+    memory_region_init_ram(mcc, NULL, "mach-virt.mcc",
+                                         vms->memmap[VIRT_AMCC].size, &error_fatal);
     memory_region_add_subregion(sysmem, vms->memmap[VIRT_AMCC].base, mcc);
 
     MemoryRegion *aic = g_new(MemoryRegion, 1);
-    memory_region_allocate_system_memory(aic, NULL, "mach-virt.aic",
-                                         vms->memmap[VIRT_AIC].size);
+    memory_region_init_ram(aic, NULL, "mach-virt.aic",
+                                         vms->memmap[VIRT_AIC].size, &error_fatal);
     memory_region_add_subregion(sysmem, vms->memmap[VIRT_AIC].base, aic);
 
     MemoryRegion *aio = g_new(MemoryRegion, 1);
-    memory_region_allocate_system_memory(aio, NULL, "mach-virt.aio",
-                                         vms->memmap[VIRT_AIO].size);
+    memory_region_init_ram(aio, NULL, "mach-virt.aio",
+                                         vms->memmap[VIRT_AIO].size, &error_fatal);
     memory_region_add_subregion(sysmem, vms->memmap[VIRT_AIO].base, aio);
 
     vms->bootinfo.ram_size = machine->ram_size;
