@@ -838,6 +838,36 @@ static void create_s3c_uart(const VirtMachineState *vms, int uart,
     }
 }
 
+static void create_hx_ram_stubs(VirtMachineState *vms, MemoryRegion *sysmem) {
+    uint64_t kRegions[] = {
+        // mca
+        0x23b040000, 0x1000,
+        // gpio (dart)
+        0x24ac04000, 0x4000,
+        // gpio
+        0x23c100000, 0x1000,
+        0x23d1f0000, 0x4000,
+        0x23e820000, 0x4000,
+        0x24a820000, 0x4000,
+        // temp
+        0x23b288000, 0x34000,
+        0x23b0c4000, 0x1000,
+        0x23b2a8000, 0x11000,
+        0x211ed2000, 0xb0000,
+        0x23d2bc000, 0x1000,
+        // I dunno
+        0x200300000, 0x100000,
+        };
+    for (int i = 0; i < sizeof(kRegions) / sizeof(*kRegions); i += 2) {
+        MemoryRegion *region = g_new(MemoryRegion, 1);
+        char tmp[256];
+        snprintf(tmp, sizeof(tmp), "mach-virt.stub%d", i / 2);
+        memory_region_init_ram(region, NULL, tmp,
+                                            kRegions[i+1], &error_fatal);
+        memory_region_add_subregion(sysmem, kRegions[i], region);
+    }
+}
+
 static DeviceState *gpio_key_dev;
 static void virt_powerdown_req(Notifier *n, void *opaque)
 {
@@ -1945,6 +1975,7 @@ static void machvirt_init(MachineState *machine)
         create_uart(vms, VIRT_SECURE_UART, secure_sysmem, serial_hd(1));
     }
     create_s3c_uart(vms, VIRT_S3C_UART, sysmem, serial_hd(2));
+    create_hx_ram_stubs(vms, sysmem);
 
     if (tag_sysmem) {
         create_tag_ram(tag_sysmem, vms->memmap[VIRT_MEM].base,
@@ -2005,6 +2036,7 @@ static void machvirt_init(MachineState *machine)
     memory_region_init_ram(aio, NULL, "mach-virt.aio",
                                          vms->memmap[VIRT_AIO].size, &error_fatal);
     memory_region_add_subregion(sysmem, vms->memmap[VIRT_AIO].base, aio);
+
 
     vms->bootinfo.ram_size = machine->ram_size;
     vms->bootinfo.nb_cpus = smp_cpus;
