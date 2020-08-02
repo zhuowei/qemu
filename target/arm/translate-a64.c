@@ -1578,8 +1578,7 @@ static void handle_sync(DisasContext *s, uint32_t insn,
 
     default:
     do_unallocated:
-        fprintf(stderr, "Ignoring msr op: %x\n", op);
-        // unallocated_encoding(s);
+        unallocated_encoding(s);
         return;
     }
 }
@@ -1735,7 +1734,8 @@ static void handle_msr_i(DisasContext *s, uint32_t insn,
 
     default:
     do_unallocated:
-        unallocated_encoding(s);
+        fprintf(stderr, "Ignoring msr op: %x\n", op);
+        // unallocated_encoding(s);
         return;
     }
 }
