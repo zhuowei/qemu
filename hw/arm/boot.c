@@ -1120,6 +1120,7 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     gsize len;
     bool ret = false;
     uint8_t* rom_buf = NULL;
+    uint8_t* rom_buf_real = NULL;
     if (!g_file_get_contents(info->kernel_filename, (char**) &data, &len, NULL)) {
         goto out;
     }
@@ -1130,8 +1131,12 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     uint64_t low_addr_temp;
     uint64_t high_addr_temp;
     macho_highest_lowest(mh, &low_addr_temp, &high_addr_temp);
+    // leave 0x100000 bytes in front for the trustcache
+    uint64_t reserve_space_in_front = 0x100000;
     uint64_t rom_buf_size = high_addr_temp - low_addr_temp;
-    rom_buf = g_malloc0(rom_buf_size);
+    uint64_t rom_buf_real_size = rom_buf_size + reserve_space_in_front;
+    rom_buf_real = g_malloc0(rom_buf_real_size);
+    rom_buf = rom_buf_real + reserve_space_in_front;
     for (unsigned int index = 0; index < mh->ncmds; index++) {
         switch (cmd->cmd) {
             case LC_SEGMENT_64: {
@@ -1177,13 +1182,15 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     // iOS 12's new style kernel caches reserves space for this with
     // __PRELINK_TEXT section, an empty section at start of kernel address space.
     // note: this is different than what Aleph Security got. Is this an iOS 13 change?
-    uint64_t trustcache_address = low_addr_temp + 0x100000;
+    // Update: macOS 11 kernelcaches wants this _below_ the lowest section (__TEXT)
+    // on iOS 13 we were able to get away with mapping this after the empty __PRELINK_TEXT
+    uint64_t trustcache_address = low_addr_temp - reserve_space_in_front;
     gsize trustcache_size = 0;
 
     if (getenv("QEMU_TRUSTCACHE")) {
         uint8_t* trustcache_data = NULL;
         if (g_file_get_contents(getenv("QEMU_TRUSTCACHE"), (char**) &trustcache_data, &trustcache_size, NULL)) {
-            memcpy(rom_buf + (trustcache_address - low_addr_temp), trustcache_data, trustcache_size);
+            memcpy(rom_buf - reserve_space_in_front, trustcache_data, trustcache_size);
             g_free(trustcache_data);
             // hack: just set 0x100000 as trustcache size
             // (don't have time to debug rounding.)
@@ -1217,7 +1224,8 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     }
 
     // actually load the kernel
-    rom_add_blob_fixed_as("macho", rom_buf, rom_buf_size, rom_base, as);
+    rom_add_blob_fixed_as("macho", rom_buf_real, rom_buf_real_size,
+        rom_base - reserve_space_in_front, as);
 
     // fixup boot args
     // note: device tree and args must follow kernel and be included in the kernel data size.
@@ -1242,8 +1250,8 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     if (data) {
         g_free(data);
     }
-    if (rom_buf) {
-        g_free(rom_buf);
+    if (rom_buf_real) {
+        g_free(rom_buf_real);
     }
     return ret? high_addr_temp - low_addr_temp : -1;
 }
