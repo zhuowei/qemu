@@ -1131,8 +1131,8 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     uint64_t low_addr_temp;
     uint64_t high_addr_temp;
     macho_highest_lowest(mh, &low_addr_temp, &high_addr_temp);
-    // leave 0x100000 bytes in front for the trustcache
-    uint64_t reserve_space_in_front = 0x100000;
+    // leave 0xc000 bytes in front for the trustcache
+    uint64_t reserve_space_in_front = 0xc000;
     uint64_t rom_buf_size = high_addr_temp - low_addr_temp;
     uint64_t rom_buf_real_size = rom_buf_size + reserve_space_in_front;
     rom_buf_real = g_malloc0(rom_buf_real_size);
@@ -1190,11 +1190,15 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     if (getenv("QEMU_TRUSTCACHE")) {
         uint8_t* trustcache_data = NULL;
         if (g_file_get_contents(getenv("QEMU_TRUSTCACHE"), (char**) &trustcache_data, &trustcache_size, NULL)) {
+            if (trustcache_size > reserve_space_in_front) {
+                fprintf(stderr, "Trustcache too big!\n");
+                abort();
+            }
             memcpy(rom_buf - reserve_space_in_front, trustcache_data, trustcache_size);
             g_free(trustcache_data);
-            // hack: just set 0x100000 as trustcache size
+            // hack: just set 0xc000 as trustcache size
             // (don't have time to debug rounding.)
-            trustcache_size = 0x100000;
+            trustcache_size = reserve_space_in_front;
         } else {
             fprintf(stderr, "trustcache failed?!\n");
             abort();
