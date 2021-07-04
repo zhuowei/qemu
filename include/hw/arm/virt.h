@@ -86,6 +86,10 @@ enum {
     VIRT_ACPI_GED,
     VIRT_NVDIMM_ACPI,
     VIRT_PVTIME,
+    VIRT_S3C_UART,
+    VIRT_AMCC,
+    VIRT_AIC,
+    VIRT_AIO,
     VIRT_LOWMEMMAP_LAST,
 };
 

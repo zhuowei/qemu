@@ -385,6 +385,7 @@ static uint64_t pauth_strip(CPUARMState *env, uint64_t ptr, bool data)
 static void QEMU_NORETURN pauth_trap(CPUARMState *env, int target_el,
                                      uintptr_t ra)
 {
+    fprintf(stderr, "PAC failure at %llx\n", (unsigned long long)ra);
     raise_exception_ra(env, EXCP_UDEF, syn_pactrap(), target_el, ra);
 }
 
@@ -411,7 +412,7 @@ static void pauth_check_trap(CPUARMState *env, int el, uintptr_t ra)
 
 static bool pauth_key_enabled(CPUARMState *env, int el, uint32_t bit)
 {
-    return (arm_sctlr(env, el) & bit) != 0;
+    return false; // zhuowei: hack
 }
 
 uint64_t HELPER(pacia)(CPUARMState *env, uint64_t x, uint64_t y)
@@ -456,6 +457,7 @@ uint64_t HELPER(pacdb)(CPUARMState *env, uint64_t x, uint64_t y)
 
 uint64_t HELPER(pacga)(CPUARMState *env, uint64_t x, uint64_t y)
 {
+    return 0; // zhuowei: hack
     uint64_t pac;
 
     pauth_check_trap(env, arm_current_el(env), GETPC());
@@ -506,10 +508,14 @@ uint64_t HELPER(autdb)(CPUARMState *env, uint64_t x, uint64_t y)
 
 uint64_t HELPER(xpaci)(CPUARMState *env, uint64_t a)
 {
+    // zhuowei: hack
+    return a;
     return pauth_strip(env, a, false);
 }
 
 uint64_t HELPER(xpacd)(CPUARMState *env, uint64_t a)
 {
+    // zhuowei: hack
+    return a;
     return pauth_strip(env, a, true);
 }

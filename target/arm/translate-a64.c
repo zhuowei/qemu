@@ -1775,7 +1775,8 @@ static void handle_msr_i(DisasContext *s, uint32_t insn,
 
     default:
     do_unallocated:
-        unallocated_encoding(s);
+        fprintf(stderr, "Ignoring msr op: %x\n", op);
+        // unallocated_encoding(s);
         return;
     }
 }
@@ -1848,7 +1849,13 @@ static void handle_sys(DisasContext *s, uint32_t insn, bool isread,
         qemu_log_mask(LOG_UNIMP, "%s access to unsupported AArch64 "
                       "system register op0:%d op1:%d crn:%d crm:%d op2:%d\n",
                       isread ? "read" : "write", op0, op1, crn, crm, op2);
-        unallocated_encoding(s);
+        // zhuowei: just ignore
+        // unallocated_encoding(s);
+        if (isread) {
+          // zhuowei: read on invalid register will always return 0
+          tcg_rt = cpu_reg(s, rt);
+          tcg_gen_movi_i64(tcg_rt, 0);
+        }
         return;
     }
 
