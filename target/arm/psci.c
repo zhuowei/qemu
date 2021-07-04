@@ -25,6 +25,16 @@
 #include "internals.h"
 #include "arm-powerctl.h"
 
+// https://github.com/matteyeux/darwin-xnu/blob/master/doc/vmapple_pac.md
+// https://github.com/matteyeux/darwin-xnu/blob/f96c754925a29fd61ad611fe49c565b8799a4921/pexpert/pexpert/arm64/VMAPPLE.h#L91
+#define VMAPPLE_HVC_NAMESPACE                   0xC1000000
+#define VMAPPLE_PAC_SET_INITIAL_STATE           (VMAPPLE_HVC_NAMESPACE | 0x0)
+#define VMAPPLE_PAC_GET_DEFAULT_KEYS            (VMAPPLE_HVC_NAMESPACE | 0x1)
+#define VMAPPLE_PAC_SET_A_KEYS                  (VMAPPLE_HVC_NAMESPACE | 0x2)
+#define VMAPPLE_PAC_SET_B_KEYS                  (VMAPPLE_HVC_NAMESPACE | 0x3)
+#define VMAPPLE_PAC_SET_EL0_DIVERSIFIER         (VMAPPLE_HVC_NAMESPACE | 0x4)
+#define VMAPPLE_PAC_SET_EL0_DIVERSIFIER_AT_EL1  (VMAPPLE_HVC_NAMESPACE | 0x5)
+
 bool arm_is_psci_call(ARMCPU *cpu, int excp_type)
 {
     /* Return true if the r0/x0 value indicates a PSCI call and
@@ -36,6 +46,12 @@ bool arm_is_psci_call(ARMCPU *cpu, int excp_type)
      */
     CPUARMState *env = &cpu->env;
     uint64_t param = is_a64(env) ? env->xregs[0] : env->regs[0];
+
+    // TODO(zhuowei): hack: Apple PAC calls
+    // Technically not PSCI but who cares
+    if (excp_type == EXCP_HVC && param >= VMAPPLE_PAC_SET_INITIAL_STATE && param <= VMAPPLE_PAC_SET_EL0_DIVERSIFIER_AT_EL1) {
+        return true;
+    }
 
     switch (excp_type) {
     case EXCP_HVC:
@@ -99,6 +115,17 @@ void arm_handle_psci_call(ARMCPU *cpu)
          * of which exact function we are about to call.
          */
         param[i] = is_a64(env) ? env->xregs[i] : env->regs[i];
+    }
+
+    // TODO(zhuowei): hack: Apple PAC calls
+    // Technically not PSCI but who cares
+    if (param[0] >= VMAPPLE_PAC_SET_INITIAL_STATE && param[0] <= VMAPPLE_PAC_SET_EL0_DIVERSIFIER_AT_EL1) {
+        // since we disabled PAC instructions, we can safely ignore all this
+        if (param[0] == VMAPPLE_PAC_GET_DEFAULT_KEYS) {
+            env->xregs[1] = env->xregs[2] = env->xregs[3] = env->xregs[4] = 0xfeedf00ddeadbeefull;
+        }
+        ret = 0;
+        goto err;
     }
 
     if ((param[0] & QEMU_PSCI_0_2_64BIT) && !is_a64(env)) {
