@@ -1029,9 +1029,11 @@ static size_t macho_setup_bootargs(struct arm_boot_info *info, AddressSpace *as,
     boot_args.Version = xnu_arm64_kBootArgsVersion2;
     boot_args.virtBase = virt_base;
     boot_args.physBase = phys_base;
-    boot_args.memSize = info->ram_size;
     // top of kernel data (kernel, dtb, any ramdisk) + boot args size + padding to 16k
     boot_args.topOfKernelData = ((top_of_kernel_data + sizeof(boot_args)) + 0xffffull) & ~0xffffull;
+    // https://github.com/AsahiLinux/docs/wiki/SW%3AMachO-Boot-Protocol
+    // This is the memory size minus the kernel's size
+    boot_args.memSize = info->ram_size - (boot_args.topOfKernelData - phys_base);
     // todo: video, machine type, flags
     boot_args.deviceTreeP = dtb_address;
     boot_args.deviceTreeLength = dtb_size;
@@ -1043,8 +1045,8 @@ static size_t macho_setup_bootargs(struct arm_boot_info *info, AddressSpace *as,
     // it's only used for memory usage debugging though.
     boot_args.memSizeActual = 0;
     rom_add_blob_fixed_as("xnu_boot_args", &boot_args, sizeof(boot_args), bootargs_addr, as);
-    return sizeof(boot_args);
     fprintf(stderr, "virtBase %llx physBase %llx\n", virt_base, phys_base);
+    return sizeof(boot_args);
 }
 
 static void macho_highest_lowest(struct mach_header_64* mh, uint64_t *lowaddr, uint64_t *highaddr) {
@@ -1228,7 +1230,8 @@ static uint64_t arm_load_macho(struct arm_boot_info *info, uint64_t *pentry, Add
     // macho_setup_bootargs takes care of adding the size for the args
     // osfmk/arm64/arm_vm_init.c:arm_vm_prot_init
     uint64_t bootargs_addr = VAtoPA(load_extra_offset);
-    uint64_t phys_base = (mem_base + kernel_load_offset);
+    // https://github.com/AsahiLinux/docs/wiki/SW%3AMachO-Boot-Protocol
+    uint64_t phys_base = mem_base;
     uint64_t virt_base = low_addr_temp & ~0x3fffffffull;
     macho_setup_bootargs(info, as, bootargs_addr, virt_base, phys_base, VAtoPA(load_extra_offset), dtb_address, dtb_size);
 
