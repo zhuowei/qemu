@@ -1309,6 +1309,8 @@ static void create_pcie(VirtMachineState *vms)
     hwaddr base = base_mmio;
     int nr_pcie_buses;
     int irq = vms->irqmap[VIRT_PCIE];
+    // TODO(zhuowei): hack: macOS hardcodes this to 0x20
+    irq = 0x20;
     MemoryRegion *mmio_alias;
     MemoryRegion *mmio_reg;
     MemoryRegion *ecam_alias;
