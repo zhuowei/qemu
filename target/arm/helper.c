@@ -5012,6 +5012,13 @@ static void sctlr_write(CPUARMState *env, const ARMCPRegInfo *ri,
         }
     }
 
+    // TODO(zhuowei): Apple checks SCTLR_EL1_EXPECTED
+    // https://github.com/apple/darwin-xnu/blob/18c0ee9fc565c37827391eaa2f42f265a3af87d5/osfmk/arm64/locore.s#L330
+    // since they don't implement AArch32, they expect SED, ITD = 1, CP15BEN = 0
+    if (true) {
+        value = (value & ~(uint64_t)SCTLR_CP15BEN) | (SCTLR_SED | SCTLR_ITD);
+    }
+
     if (raw_read(env, ri) == value) {
         /* Skip the TLB flush if nothing actually changed; Linux likes
          * to do a lot of pointless SCTLR writes.
