@@ -1319,6 +1319,8 @@ static bool hvf_arm_el2_supported(void)
     return is_nested_virt_supported;
 }
 
+API_AVAILABLE(macos(27.0))
+hv_return_t _hv_vm_config_set_vhe_enabled(hv_vm_config_t cfg, bool vhe);
 
 hv_return_t hvf_arch_vm_create(MachineState *ms, uint32_t pa_range)
 {
@@ -1341,6 +1343,9 @@ hv_return_t hvf_arch_vm_create(MachineState *ms, uint32_t pa_range)
             if (ret != HV_SUCCESS) {
                 error_report("Failed to enable nested virtualization.");
                 goto cleanup;
+            }
+            if (__builtin_available(macOS 27.0, *)) {
+                _hv_vm_config_set_vhe_enabled(config, true);
             }
         }
     }
