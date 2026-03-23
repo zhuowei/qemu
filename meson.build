@@ -706,6 +706,11 @@ endif
 
 qemu_common_flags += hardening_flags
 
+if host_os == 'windows' and get_option('debug') and get_option('pdb')
+  qemu_common_flags += cc.get_supported_arguments('-g','-gcodeview','-gcolumn-info','-fno-omit-frame-pointer')
+  qemu_ldflags += cc.get_supported_link_arguments('-g','-Wl,--pdb=')
+endif
+
 # Collect warning flags we want to set, sorted alphabetically
 warn_flags = [
   # First enable interesting warnings

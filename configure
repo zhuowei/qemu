@@ -693,6 +693,9 @@ for opt do
       meson_option_parse --enable-debug-mutex ""
       meson_option_add -Doptimization=0
   ;;
+  --enable-pdb)
+      meson_option_add -Dpdb=true
+  ;;
   --disable-tcg) tcg="disabled"
   ;;
   --enable-tcg) tcg="enabled"
