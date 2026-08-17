@@ -1398,8 +1398,36 @@ static bool hvf_arm_el2_supported(void)
 }
 
 
+extern const void* _dyld_get_shared_cache_range(size_t* length);
+
+static void hack_nested_virt(void) {
+   // Arm::HypervisorCapabilities::get_capabilities()::hypervisor_capabilities
+   // put a breakpoint on is_nested_virtualization_supported
+   // look at the load after Arm::HypervisorCapabilities::get_capabilities()::result
+   // ldr    x20, [x8]
+   const uint64_t hypervisor_capabilities_off = 0xf4781a98; // macOS 27.0 beta 26A5406e
+
+
+   bool is_nested_virt_supported;
+   hv_return_t ret = hv_vm_config_get_el2_supported(&is_nested_virt_supported);
+   assert_hvf_ok(ret);
+
+   size_t size = 0;
+   uint64_t slide = (uint64_t)_dyld_get_shared_cache_range(&size);
+   uint64_t* p = (uint64_t*)(hypervisor_capabilities_off + slide + 0x40);
+   *p |= 0x2c0000000000ull;
+
+   ret = hv_vm_config_get_el2_supported(&is_nested_virt_supported);
+   assert_hvf_ok(ret);
+   assert(is_nested_virt_supported);
+}
+
 hv_return_t hvf_arch_vm_create(MachineState *ms, uint32_t pa_range)
 {
+
+    // zhuowei: hack for nested virt on M2 Pro
+    hack_nested_virt();
+
     hv_return_t ret;
     hv_vm_config_t config = hv_vm_config_create();
 
